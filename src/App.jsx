@@ -1,41 +1,66 @@
 import { useEffect, useState } from "react";
 
+const URLS = {
+  USERS: "https://jsonplaceholder.typicode.com/users",
+  POSTS: "https://jsonplaceholder.typicode.com/posts",
+  COMMENTS: "https://jsonplaceholder.typicode.com/comments",
+};
+
 function App() {
-  const [{ users, loading, error }, setUsers] = useFetchUsers();
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setUsers(controller);
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  const [url, setUrl] = useState("https://jsonplaceholder.typicode.com/users");
+  const [{ users, loading, error }] = useFetchUsers(url);
 
   return (
     <>
-      <h1>Users</h1>
-      {error && <h2>Error fetching users</h2>}
-      {loading && <h2>Loading . . . </h2>}
-      {users.length > 0 &&
-        loading !== true &&
-        users.map((user) => {
-          return <li key={user.id}>{user.name}</li>;
-        })}
+      <div>
+        <label>
+          <input
+            type="radio"
+            checked={url === URLS.USERS}
+            onChange={() => setUrl(URLS.USERS)}
+          />
+          Users
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={url === URLS.POSTS}
+            onChange={() => setUrl(URLS.POSTS)}
+          />
+          Posts
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={url === URLS.COMMENTS}
+            onChange={() => setUrl(URLS.COMMENTS)}
+          />
+          Comments
+        </label>
+      </div>
+      {loading ? (
+        <h1>Loading...</h1>
+      ) : error ? (
+        <h1>Error</h1>
+      ) : (
+        users.map((user) => <li key={user.id}>{user.name}</li>)
+      )}
     </>
   );
 }
 
-function useFetchUsers() {
+function useFetchUsers(url) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  function fetchUsers(x) {
+  useEffect(() => {
     setLoading(true);
     setError(false);
 
-    fetch("https://jsonplaceholder.typicode.com/users", {
+    const x = new AbortController();
+
+    fetch(url, {
       signal: x.signal,
     })
       .then((res) => {
@@ -51,6 +76,7 @@ function useFetchUsers() {
         console.log("data resolved, setting users");
         setUsers(data);
         setLoading(false);
+        setError(false);
         return data;
       })
       .catch((e) => {
@@ -64,9 +90,13 @@ function useFetchUsers() {
           setLoading(false);
         }
       });
-  }
 
-  return [{ users, loading, error }, fetchUsers];
+    return () => {
+      x.abort();
+    };
+  }, []);
+
+  return [{ users, loading, error }];
 }
 
 export default App;
